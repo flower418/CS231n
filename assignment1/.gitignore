@@ -1,1 +1,3 @@
 *.ipynb
+cs231n/__pycache__
+cs231n/datasets
