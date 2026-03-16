@@ -1,4 +1,3 @@
-*.ipynb
 cs231n/classifiers/__pycache__
 cs231n/datasets
 cs231n/__pycache__
