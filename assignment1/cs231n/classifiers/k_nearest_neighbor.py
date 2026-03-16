@@ -67,15 +67,15 @@ class KNearestNeighbor(object):
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
+        # dists 的维度为 (num_test, num_train)
         for i in range(num_test):
             for j in range(num_train):
                 #####################################################################
-                # TODO:                                                             #
                 # Compute the l2 distance between the ith test point and the jth    #
                 # training point, and store the result in dists[i, j]. You should   #
                 # not use a loop over dimension, nor use np.linalg.norm().          #
                 #####################################################################
-                pass
+                dists[i, j] = np.sqrt(np.sum(np.square(X[i] - self.X_train[j])))
         return dists
 
     def compute_distances_one_loop(self, X):
@@ -90,12 +90,14 @@ class KNearestNeighbor(object):
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
             #######################################################################
-            # TODO:                                                               #
             # Compute the l2 distance between the ith test point and all training #
             # points, and store the result in dists[i, :].                        #
             # Do not use np.linalg.norm().                                        #
             #######################################################################
-            pass
+            # X[i] 表示第 i 行 test 数据 1*D
+            # self.X_train 有 num_train 行数据，num_train*D
+            # 注意：一维 np 无需转置
+            dists[i] = np.sqrt(np.sum(np.square((self.X_train - X[i])), axis=1))
         return dists
 
     def compute_distances_no_loops(self, X):
@@ -109,7 +111,6 @@ class KNearestNeighbor(object):
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
         #########################################################################
-        # TODO:                                                                 #
         # Compute the l2 distance between all test points and all training      #
         # points without using any explicit loops, and store the result in      #
         # dists.                                                                #
@@ -121,7 +122,14 @@ class KNearestNeighbor(object):
         # HINT: Try to formulate the l2 distance using matrix multiplication    #
         #       and two broadcast sums.                                         #
         #########################################################################
-
+        # X: num_text*D
+        # self.X_train: num_train*D
+        # 注意这里必须用 keepdims=True 来确保还是二维矩阵
+        X_square = np.sum(np.square(X), axis=1, keepdims=True) # num_test*1
+        Y_square = np.sum(np.square(self.X_train), axis=1, keepdims=True) # num_train*1
+        cross = X @ self.X_train.T # num_test*num_train
+        dists = np.sqrt(X_square - 2 * cross + Y_square.T)
+        
         return dists
 
     def predict_labels(self, dists, k=1):
@@ -144,21 +152,21 @@ class KNearestNeighbor(object):
             # the ith test point.
             closest_y = []
             #########################################################################
-            # TODO:                                                                 #
             # Use the distance matrix to find the k nearest neighbors of the ith    #
             # testing point, and use self.y_train to find the labels of these       #
             # neighbors. Store these labels in closest_y.                           #
             # Hint: Look up the function numpy.argsort.                             #
             #########################################################################
-
-
+            dist_i = dists[i]
+            sorted_index = np.argsort(dist_i) # np.argsort 返回的是排序好的索引
+            closest_y = self.y_train[sorted_index[:k]]
             #########################################################################
-            # TODO:                                                                 #
             # Now that you have found the labels of the k nearest neighbors, you    #
             # need to find the most common label in the list closest_y of labels.   #
             # Store this label in y_pred[i]. Break ties by choosing the smaller     #
             # label.                                                                #
             #########################################################################
-
+            # 由于类型都是整数，选用 bincount，统计每个整数出现的次数，然后再用 argmax 统计出现最多的类型
+            y_pred[i] = np.argmax(np.bincount(closest_y))
 
         return y_pred
