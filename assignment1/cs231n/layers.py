@@ -24,10 +24,12 @@ def affine_forward(x, w, b):
     """
     out = None
     ###########################################################################
-    # TODO: Implement the affine forward pass. Store the result in out. You   #
+    # Implement the affine forward pass. Store the result in out. You         #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-
+    n = x.shape[0]
+    x_temp = x.reshape((n, -1))
+    out = x_temp @ w + b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -54,9 +56,17 @@ def affine_backward(dout, cache):
     x, w, b = cache
     dx, dw, db = None, None, None
     ###########################################################################
-    # TODO: Implement the affine backward pass.                               #
+    # Implement the affine backward pass.                               #
     ###########################################################################
+    x_shape = x.shape # 需保存原有的形状才能返回维度
+    n = x_shape[0]
+    dx = (dout @ w.T).reshape(x_shape)
 
+    x_temp = x.reshape((n, -1))
+    dw = x_temp.T @ dout
+
+    e_b = np.ones(n)
+    db = dout.T @ e_b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -76,9 +86,10 @@ def relu_forward(x):
     """
     out = None
     ###########################################################################
-    # TODO: Implement the ReLU forward pass.                                  #
+    # Implement the ReLU forward pass.                                  #
     ###########################################################################
-
+    # 使用 np.maximum 来逐元素进行比较
+    out = np.maximum(0, x)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -99,9 +110,11 @@ def relu_backward(dout, cache):
     """
     dx, x = None, cache
     ###########################################################################
-    # TODO: Implement the ReLU backward pass.                                 #
+    # Implement the ReLU backward pass.                                 #
     ###########################################################################
-
+    # 生成 mask 掩码，对于 x > 0 的地方才会与 dout 相乘
+    mask = (x > 0)
+    dx = mask * dout
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -712,9 +725,18 @@ def softmax_loss(x, y):
     loss, dx = None, None
 
     ###########################################################################
-    # TODO: Copy over your solution from A1.
+    # Copy over your solution from A1.
     ###########################################################################
+    # 注意这里不要直接修改传入的参数，否则可能会影响后面再用到 x
+    x_temp = x - np.max(x, axis=1, keepdims=True)
+    n = x.shape[0]
+    p = np.exp(x_temp) / np.sum(np.exp(x_temp), axis=1, keepdims=True)
+    logp = np.log(p)
+    loss = -np.sum(logp[np.arange(n), y]) / n
 
+    I_y = np.zeros(x.shape)
+    I_y[np.arange(x.shape[0]), y] = 1
+    dx = (p - I_y) / n
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
