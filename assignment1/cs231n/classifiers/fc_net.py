@@ -46,7 +46,7 @@ class TwoLayerNet(object):
         self.reg = reg
 
         ############################################################################
-        # TODO: Initialize the weights and biases of the two-layer net. Weights    #
+        # Initialize the weights and biases of the two-layer net. Weights          #
         # should be initialized from a Gaussian centered at 0.0 with               #
         # standard deviation equal to weight_scale, and biases should be           #
         # initialized to zero. All weights and biases should be stored in the      #
@@ -54,7 +54,11 @@ class TwoLayerNet(object):
         # and biases using the keys 'W1' and 'b1' and second layer                 #
         # weights and biases using the keys 'W2' and 'b2'.                         #
         ############################################################################
-
+        # 使用 np.random.normal 来生成 gaussian 分布
+        self.params["W1"] = np.random.normal(loc=0, scale=weight_scale, size=(input_dim, hidden_dim))
+        self.params["b1"] = np.zeros(hidden_dim)
+        self.params["W2"] = np.random.normal(loc=0, scale=weight_scale, size=(hidden_dim, num_classes))
+        self.params["b2"] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -80,30 +84,50 @@ class TwoLayerNet(object):
         """
         scores = None
         ############################################################################
-        # TODO: Implement the forward pass for the two-layer net, computing the    #
+        # Implement the forward pass for the two-layer net, computing the          #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
+        W1 = self.params["W1"]
+        W2 = self.params["W2"]
+        b1 = self.params["b1"]
+        b2 = self.params["b2"]
 
+        # 注意由于封装的函数都会对 X 进行处理，所以不需要在这里面 reshape
+        out1, cache1 = affine_relu_forward(X, W1, b1)
+        out2, cache2 = affine_forward(out1, W2, b2)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
 
         # If y is None then we are in test mode so just return scores
+        scores = out2
         if y is None:
             return scores
 
         loss, grads = 0, {}
         ############################################################################
-        # TODO: Implement the backward pass for the two-layer net. Store the loss  #
+        # Implement the backward pass for the two-layer net. Store the loss        #
         # in the loss variable and gradients in the grads dictionary. Compute data #
         # loss using softmax, and make sure that grads[k] holds the gradients for  #
         # self.params[k]. Don't forget to add L2 regularization!                   #
         #                                                                          #
-        # NOTE: To ensure that your implementation matches ours and you pass the   #
+        # To ensure that your implementation matches ours and you pass the         #
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
+        loss, dout2 = softmax_loss(out2, y) # 注意 softmax_loss 返回的是对上一层输入的 dout
+        loss += 0.5 * self.reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
 
+        dout1, dw2, db2 = affine_backward(dout2, cache2)
+        dout, dw1, db1 = affine_relu_backward(dout1, cache1)
+        # 注意这里需要对 dW 加上 reg 后才是真正结果
+        dw2 += self.reg * W2
+        dw1 += self.reg * W1
+        # 重要的不是对 X 求导，实际上是对上游传入的向量求导
+        grads["W1"] = dw1
+        grads["W2"] = dw2
+        grads["b1"] = db1
+        grads["b2"] = db2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
