@@ -53,7 +53,7 @@ def softmax_loss_naive(W, X, y, reg):
     # loss is being computed. As a result you may need to modify some of the    #
     # code above to compute the gradient.                                       #
     #############################################################################
-    # 由于在计算总 loss 时，每一项都要除以 num_train,所以最后 dW 也要除以这个数
+    # 由于在计算总 loss 时，每一项都要除以 num_train,所以最后 dW 也要除以这个数 
     # 注意还要考虑 regularization 项
     dW /= num_train
     dW += 2 * reg * W
@@ -70,17 +70,19 @@ def softmax_loss_vectorized(W, X, y, reg):
     # Initialize the loss and gradient to zero.
     loss = 0.0
     dW = np.zeros_like(W)
-
-
     #############################################################################
-    # TODO:                                                                     #
     # Implement a vectorized version of the softmax loss, storing the           #
     # result in loss.                                                           #
     #############################################################################
-
-
+    num_train = X.shape[0]
+    num_classes = W.shape[1]
+    s = X @ W # N*C
+    s -= np.max(s, axis=1, keepdims=True)
+    p = np.exp(s)
+    p /= np.sum(p, axis=1, keepdims=True)
+    logp = np.log(p)
+    loss = -np.sum(logp[np.arange(num_train), y]) / num_train + reg * np.sum(np.square(W))
     #############################################################################
-    # TODO:                                                                     #
     # Implement a vectorized version of the gradient for the softmax            #
     # loss, storing the result in dW.                                           #
     #                                                                           #
@@ -88,6 +90,9 @@ def softmax_loss_vectorized(W, X, y, reg):
     # to reuse some of the intermediate values that you used to compute the     #
     # loss.                                                                     #
     #############################################################################
-
+    # 计算 grad 时，只需要把求和写成矩阵乘法的形式
+    e = np.zeros((num_train, num_classes))
+    e[np.arange(num_train), y] = 1
+    dW = X.T @ (p - e) / num_train + 2 * reg * W
 
     return loss, dW
