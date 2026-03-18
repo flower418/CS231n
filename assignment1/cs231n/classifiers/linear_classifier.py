@@ -52,9 +52,7 @@ class LinearClassifier(object):
         for it in range(num_iters):
             X_batch = None
             y_batch = None
-
             #########################################################################
-            # TODO:                                                                 #
             # Sample batch_size elements from the training data and their           #
             # corresponding labels to use in this round of gradient descent.        #
             # Store the data in X_batch and their corresponding labels in           #
@@ -64,18 +62,17 @@ class LinearClassifier(object):
             # Hint: Use np.random.choice to generate indices. Sampling with         #
             # replacement is faster than sampling without replacement.              #
             #########################################################################
-
-
+            random_index = np.random.choice(num_train, batch_size) # 从所有训练样本中随机选 batch_size 个
+            X_batch = X[random_index]
+            y_batch = y[random_index]
             # evaluate loss and gradient
             loss, grad = self.loss(X_batch, y_batch, reg)
             loss_history.append(loss)
-
             # perform parameter update
             #########################################################################
-            # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
-
+            self.W -= learning_rate * grad
 
             if verbose and it % 100 == 0:
                 print("iteration %d / %d: loss %f" % (it, num_iters, loss))
