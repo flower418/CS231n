@@ -95,10 +95,10 @@ class LinearClassifier(object):
         """
         y_pred = np.zeros(X.shape[0])
         ###########################################################################
-        # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
-
+        # 通过 np.argmax 找最大值的索引
+        y_pred = np.argmax(X @ self.W, axis=1) # 由于要求返回 1 维，所以不能 keepdims
         return y_pred
 
     def loss(self, X_batch, y_batch, reg):
