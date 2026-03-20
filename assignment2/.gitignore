@@ -1,0 +1,7 @@
+cs231n/__pycache__
+cs231n/classifiers/__pycache__
+cs231n/datasets
+cs231n/build
+cs231n/classifiers/.ipynb_checkpoints
+cs231n/im2col_cython.cpython-311-x86_64-linux-gnu.so
+cs231n/im2col_cython.pyx
