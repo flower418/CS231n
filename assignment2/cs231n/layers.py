@@ -21,9 +21,11 @@ def affine_forward(x, w, b):
     """
     out = None
     ###########################################################################
-    # TODO: Copy over your solution from Assignment 1.                        #
+    # Copy over your solution from Assignment 1.                              #
     ###########################################################################
-    # 
+    n = x.shape[0]
+    x_temp = x.reshape((n, -1))
+    out = x_temp @ w + b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -49,9 +51,17 @@ def affine_backward(dout, cache):
     x, w, b = cache
     dx, dw, db = None, None, None
     ###########################################################################
-    # TODO: Copy over your solution from Assignment 1.                        #
+    # Copy over your solution from Assignment 1.                              #
     ###########################################################################
-    # 
+    x_shape = x.shape # 需保存原有的形状才能返回维度
+    n = x_shape[0]
+    dx = (dout @ w.T).reshape(x_shape)
+
+    x_temp = x.reshape((n, -1))
+    dw = x_temp.T @ dout
+
+    e_b = np.ones(n)
+    db = dout.T @ e_b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -174,7 +184,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     out, cache = None, None
     if mode == "train":
         #######################################################################
-        # TODO: Implement the training-time forward pass for batch norm.      #
+        # Implement the training-time forward pass for batch norm.            #
         # Use minibatch statistics to compute the mean and variance, use      #
         # these statistics to normalize the incoming data, and scale and      #
         # shift the normalized data using gamma and beta.                     #
@@ -194,18 +204,26 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Referencing the original paper (https://arxiv.org/abs/1502.03167)   #
         # might prove to be helpful.                                          #
         #######################################################################
-        pass
+        mean = np.mean(x, axis=0)
+        var = np.var(x, axis=0)
+        x_hat = (x - mean) / np.sqrt(var + eps)
+        out = gamma * x_hat + beta
+        cache = (x, x_hat, mean, var, gamma, eps)
+
+        running_mean = momentum * running_mean + (1 - momentum) * mean
+        running_var = momentum * running_var + (1 - momentum) * var
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
     elif mode == "test":
         #######################################################################
-        # TODO: Implement the test-time forward pass for batch normalization. #
+        # Implement the test-time forward pass for batch normalization.       #
         # Use the running mean and variance to normalize the incoming data,   #
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x_hat = (x - running_mean) / np.sqrt(running_var + eps)
+        out = gamma * x_hat + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
