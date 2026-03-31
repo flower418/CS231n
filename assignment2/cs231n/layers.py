@@ -348,7 +348,7 @@ def layernorm_forward(x, gamma, beta, ln_param):
     out, cache = None, None
     eps = ln_param.get("eps", 1e-5)
     ###########################################################################
-    # TODO: Implement the training-time forward pass for layer norm.          #
+    # Implement the training-time forward pass for layer norm.                #
     # Normalize the incoming data, and scale and  shift the normalized data   #
     #  using gamma and beta.                                                  #
     # HINT: this can be done by slightly modifying your training-time         #
@@ -357,7 +357,11 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # transformations you could perform, that would enable you to copy over   #
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
-    # 
+    mean = np.mean(x, axis=1, keepdims=True) # 需要保持维度不变才能进行广播
+    var = np.var(x, axis=1, keepdims=True) + eps
+    x_hat = (x - mean) / np.sqrt(var)
+    out = gamma * x_hat + beta
+    cache = (x, x_hat, mean, var, gamma, eps)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -381,13 +385,21 @@ def layernorm_backward(dout, cache):
     """
     dx, dgamma, dbeta = None, None, None
     ###########################################################################
-    # TODO: Implement the backward pass for layer norm.                       #
+    # Implement the backward pass for layer norm.                             #
     #                                                                         #
     # HINT: this can be done by slightly modifying your training-time         #
     # implementation of batch normalization. The hints to the forward pass    #
     # still apply!                                                            #
     ###########################################################################
-    # 
+    x, x_hat, mean, var, gamma, eps = cache
+    N, D = x.shape
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_hat, axis=0)
+
+    dhat = dout * gamma
+    sigma = np.sqrt(var)
+    dx = 1 / sigma * dhat - 1 / (D * sigma) * np.sum(dhat, axis=1, keepdims=True) - 1 / (D * sigma ** 3) * (x - mean) * np.sum(dhat * (x - mean), axis=1, keepdims=True)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
