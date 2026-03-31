@@ -255,12 +255,20 @@ def batchnorm_backward(dout, cache):
     """
     dx, dgamma, dbeta = None, None, None
     ###########################################################################
-    # TODO: Implement the backward pass for batch normalization. Store the    #
+    # Implement the backward pass for batch normalization. Store the          #
     # results in the dx, dgamma, and dbeta variables.                         #
     # Referencing the original paper (https://arxiv.org/abs/1502.03167)       #
     # might prove to be helpful.                                              #
     ###########################################################################
-    # 
+    x, x_hat, mean, var, gamma, eps = cache
+    N = x.shape[0]
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_hat, axis=0)
+
+    dhat = dout * gamma
+    S = np.sqrt(var + eps)
+    dx = 1 / S * dhat - 1 / (N * S) * np.sum(dhat, axis=0) - 1 / (N * S ** 3) * (x - mean) * np.sum(dhat * (x - mean), axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -283,14 +291,23 @@ def batchnorm_backward_alt(dout, cache):
     """
     dx, dgamma, dbeta = None, None, None
     ###########################################################################
-    # TODO: Implement the backward pass for batch normalization. Store the    #
+    # Implement the backward pass for batch normalization. Store the          #
     # results in the dx, dgamma, and dbeta variables.                         #
     #                                                                         #
     # After computing the gradient with respect to the centered inputs, you   #
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    # 
+    # 优化的地方在于复用了 x_hat
+    x, x_hat, mean, var, gamma, eps = cache
+    N = x.shape[0]
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_hat, axis=0)
+
+    dhat = dout * gamma
+    S = np.sqrt(var + eps)
+    dx = 1 / S * dhat - 1 / (N * S) * np.sum(dhat, axis=0) - 1 / (N * S) * x_hat * np.sum(dout * x_hat)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
