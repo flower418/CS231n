@@ -61,7 +61,7 @@ class FullyConnectedNet(object):
         self.params = {}
 
         ############################################################################
-        # TODO: Initialize the parameters of the network, storing all values in    #
+        # Initialize the parameters of the network, storing all values in          #
         # the self.params dictionary. Store weights and biases for the first layer #
         # in W1 and b1; for the second layer use W2 and b2, etc. Weights should be #
         # initialized from a normal distribution centered at 0 with standard       #
@@ -72,7 +72,15 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to ones and shift     #
         # parameters should be initialized to zeros.                               #
         ############################################################################
-        # 
+        L = self.num_layers
+        dims = [input_dim] + hidden_dims + [num_classes]
+        for i in range(1, L + 1):
+            self.params[f"w{i}"] = np.random.normal(loc=0, scale=weight_scale, size=(dims[i - 1], dims[i]))
+            self.params[f"b{i}"] = np.zeros(dims[i])
+
+            if self.normalization is not None and i < L: # 第 L 层进行 affine,不用 norm
+                self.params[f"gamma{i}"] = np.ones(dims[i])
+                self.params[f"beta{i}"] = np.zeros(dims[i])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
