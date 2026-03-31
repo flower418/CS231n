@@ -163,7 +163,7 @@ class FullyConnectedNet(object):
             if self.normalization is not None:
                 gamma = self.params[f"gamma{i}"]
                 beta = self.params[f"beta{i}"]
-                out, cache = affine_norm_relu_forward(cur_input, w, b, gamma, beta, self.bn_params[i - 1]) # bn_params 从 0 开始索引
+                out, cache = affine_norm_relu_forward(cur_input, w, b, gamma, beta, self.bn_params[i - 1], self.normalization) # bn_params 从 0 开始索引
             else:
                 out, cache = affine_relu_forward(cur_input, w, b)
             
