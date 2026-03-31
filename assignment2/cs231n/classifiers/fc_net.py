@@ -75,7 +75,7 @@ class FullyConnectedNet(object):
         L = self.num_layers
         dims = [input_dim] + hidden_dims + [num_classes]
         for i in range(1, L + 1):
-            self.params[f"w{i}"] = np.random.normal(loc=0, scale=weight_scale, size=(dims[i - 1], dims[i]))
+            self.params[f"W{i}"] = np.random.normal(loc=0, scale=weight_scale, size=(dims[i - 1], dims[i])) # 注意一定大写，不然匹配不到
             self.params[f"b{i}"] = np.zeros(dims[i])
 
             if self.normalization is not None and i < L: # 第 L 层进行 affine,不用 norm
@@ -139,7 +139,7 @@ class FullyConnectedNet(object):
                 bn_param["mode"] = mode
         scores = None
         ############################################################################
-        # TODO: Implement the forward pass for the fully connected net, computing  #
+        # Implement the forward pass for the fully connected net, computing        #
         # the class scores for X and storing them in the scores variable.          #
         #                                                                          #
         # When using dropout, you'll need to pass self.dropout_param to each       #
@@ -150,7 +150,33 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        # 
+        L = self.num_layers
+        outs = []
+        caches = []
+        
+        cur_input = X
+        for i in range(1, L):
+            # 只对使用 norm 的用额外的 layer
+            w = self.params[f"W{i}"]
+            b = self.params[f"b{i}"]
+
+            if self.normalization is not None:
+                gamma = self.params[f"gamma{i}"]
+                beta = self.params[f"beta{i}"]
+                out, cache = affine_norm_relu_forward(cur_input, w, b, gamma, beta, self.bn_params[i - 1]) # bn_params 从 0 开始索引
+            else:
+                out, cache = affine_relu_forward(cur_input, w, b)
+            
+            cur_input = out
+            outs.append(out)
+            caches.append(cache)
+
+        w = self.params[f"W{L}"]
+        b = self.params[f"b{L}"]
+        out, cache = affine_forward(cur_input, w, b)
+        scores = out
+        outs.append(out)
+        caches.append(cache)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -161,7 +187,7 @@ class FullyConnectedNet(object):
 
         loss, grads = 0.0, {}
         ############################################################################
-        # TODO: Implement the backward pass for the fully connected net. Store the #
+        # Implement the backward pass for the fully connected net. Store the       #
         # loss in the loss variable and gradients in the grads dictionary. Compute #
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
@@ -173,7 +199,24 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        # 
+        loss, dout = softmax_loss(out, y)
+        for i in range(1, L + 1):
+            W = self.params[f"W{i}"]
+            loss += 0.5 * self.reg * np.sum(W ** 2)
+
+        dout, dw, db = affine_backward(dout, caches[-1])
+        grads[f"W{L}"] = dw + self.reg * self.params[f"W{L}"]
+        grads[f"b{L}"] = db
+
+        for i in range(L - 1, 0, -1):
+            if self.normalization is not None:
+                dout, dw, db, dgamma, dbeta = affine_norm_relu_backward(dout, caches[i - 1]) # 索引从 0 开始
+                grads[f"gamma{i}"] = dgamma
+                grads[f"beta{i}"] = dbeta
+            else:
+                dout, dw, db = affine_relu_backward(dout, caches[i - 1])
+            grads[f"W{i}"] = dw + self.reg * self.params[f"W{i}"] # 每一层都应该 regularization
+            grads[f"b{i}"] = db
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
