@@ -80,9 +80,9 @@ def relu_forward(x):
     """
     out = None
     ###########################################################################
-    # TODO: Copy over your solution from Assignment 1.                        #
+    # Copy over your solution from Assignment 1.                              #
     ###########################################################################
-    # 
+    out = np.maximum(0, x)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -102,9 +102,10 @@ def relu_backward(dout, cache):
     """
     dx, x = None, cache
     ###########################################################################
-    # TODO: Copy over your solution from Assignment 1.                        #
+    # Copy over your solution from Assignment 1.                              #   
     ###########################################################################
-    # 
+    mask = (x > 0)
+    dx = mask * dout
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -127,9 +128,17 @@ def softmax_loss(x, y):
     loss, dx = None, None
 
     ###########################################################################
-    # TODO: Copy over your solution from Assignment 1.                        #
+    # Copy over your solution from Assignment 1.                              #
     ###########################################################################
-    # 
+    x_temp = x - np.max(x, axis=1, keepdims=True)
+    n = x.shape[0]
+    p = np.exp(x_temp) / np.sum(np.exp(x_temp), axis=1, keepdims=True)
+    logp = np.log(p)
+    loss = -1 / n * np.sum(logp[np.arange(n), y])
+
+    I_y = np.zeros(x.shape)
+    I_y[np.arange(n), y] = 1
+    dx = (p - I_y) / n
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
