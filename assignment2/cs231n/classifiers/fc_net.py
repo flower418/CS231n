@@ -166,6 +166,10 @@ class FullyConnectedNet(object):
                 out, cache = affine_norm_relu_forward(cur_input, w, b, gamma, beta, self.bn_params[i - 1], self.normalization) # bn_params 从 0 开始索引
             else:
                 out, cache = affine_relu_forward(cur_input, w, b)
+
+            if self.use_dropout:
+                out, dropout_cache = dropout_forward(out, self.dropout_param)
+                cache = (cache, dropout_cache)
             
             cur_input = out
             outs.append(out)
@@ -209,12 +213,18 @@ class FullyConnectedNet(object):
         grads[f"b{L}"] = db
 
         for i in range(L - 1, 0, -1):
+            cache = caches[i - 1]
+
+            if self.use_dropout:
+                cache, dropout_cache = cache
+                dout = dropout_backward(dout, dropout_cache)
+
             if self.normalization is not None:
-                dout, dw, db, dgamma, dbeta = affine_norm_relu_backward(dout, caches[i - 1]) # 索引从 0 开始
+                dout, dw, db, dgamma, dbeta = affine_norm_relu_backward(dout, cache, self.normalization) # 索引从 0 开始
                 grads[f"gamma{i}"] = dgamma
                 grads[f"beta{i}"] = dbeta
             else:
-                dout, dw, db = affine_relu_backward(dout, caches[i - 1])
+                dout, dw, db = affine_relu_backward(dout, cache)
             grads[f"W{i}"] = dw + self.reg * self.params[f"W{i}"] # 每一层都应该 regularization
             grads[f"b{i}"] = db
         ############################################################################
