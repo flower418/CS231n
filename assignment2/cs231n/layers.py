@@ -438,18 +438,23 @@ def dropout_forward(x, dropout_param):
 
     if mode == "train":
         #######################################################################
-        # TODO: Implement training phase forward pass for inverted dropout.   #
+        # Implement training phase forward pass for inverted dropout.         #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        pass
+        # 生成一个 mask 掩码,保留所有小于 p 的 neuron,因为生成的数随机分布在 0-1,所以保留 <p 的也就是有 p 的神经元剩余
+        # 此时训练输出的期望为 pE(x)
+        # 为了保证 train 和 test 的输出一致，应该除以 p 让期望一致
+        mask = (np.random.rand(*x.shape) < p) / p # 需要将 x.shape 解包，直接传入
+        out = x * mask
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
     elif mode == "test":
         #######################################################################
-        # TODO: Implement the test phase forward pass for inverted dropout.   #
+        # Implement the test phase forward pass for inverted dropout.         #
         #######################################################################
-        pass
+        out = x
+        mask = None
         #######################################################################
         #                            END OF YOUR CODE                         #
         #######################################################################
