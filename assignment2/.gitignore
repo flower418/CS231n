@@ -5,3 +5,4 @@ cs231n/build
 cs231n/classifiers/.ipynb_checkpoints
 cs231n/im2col_cython.cpython-311-x86_64-linux-gnu.so
 cs231n/im2col_cython.pyx
+.qwen
