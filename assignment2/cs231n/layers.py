@@ -721,13 +721,18 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     out, cache = None, None
 
     ###########################################################################
-    # TODO: Implement the forward pass for spatial batch normalization.       #
+    # Implement the forward pass for spatial batch normalization.             #
     #                                                                         #
     # HINT: You can implement spatial batch normalization by calling the      #
     # vanilla version of batch normalization you implemented above.           #
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
-    # 
+    # 通过调用之前写好的 batchnorm,将 C 放到最后一个维度，剩下的就是正常的 batchnorm,然后恢复成原来的维度即可
+    N, C, H, W = x.shape
+    x_temp = np.transpose(x, (0, 2, 3, 1)) # N*H*W*C
+    x_flat = x_temp.reshape(-1, C)
+    out_flat, cache = batchnorm_forward(x_flat, gamma, beta, bn_param)
+    out = out_flat.reshape(N, H, W, C).transpose(0, 3, 1, 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -750,13 +755,17 @@ def spatial_batchnorm_backward(dout, cache):
     dx, dgamma, dbeta = None, None, None
 
     ###########################################################################
-    # TODO: Implement the backward pass for spatial batch normalization.      #
+    # Implement the backward pass for spatial batch normalization.            #  
     #                                                                         #
     # HINT: You can implement spatial batch normalization by calling the      #
     # vanilla version of batch normalization you implemented above.           #
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
-    # 
+    N, C, H, W = dout.shape
+    dout_t = dout.transpose(0, 2, 3, 1)
+    dout_flat = dout_t.reshape(-1, C)
+    dx_flat, dgamma, dbeta = batchnorm_backward(dout_flat, cache)
+    dx = dx_flat.reshape(N, H, W, C).transpose(0, 3, 1, 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -787,13 +796,25 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     out, cache = None, None
     eps = gn_param.get("eps", 1e-5)
     ###########################################################################
-    # TODO: Implement the forward pass for spatial group normalization.       #
+    # Implement the forward pass for spatial group normalization.             #
     # This will be extremely similar to the layer norm implementation.        #
     # In particular, think about how you could transform the matrix so that   #
     # the bulk of the code is similar to both train-time batch normalization  #
     # and layer normalization!                                                #
     ###########################################################################
-    # 
+    eps = gn_param.get("eps", 1e-5)
+    N, C, H, W = x.shape
+    x_group = x.reshape(N, G, -1) # N*G*D
+
+    mean = np.mean(x_group, axis=2, keepdims=True) # N*G*1
+    var = np.var(x_group, axis=2, keepdims=True) # N*G*1
+    std = np.sqrt(var + eps)
+
+    xg_hat = (x_group - mean) / std # N*G*D
+    xhat = xg_hat.reshape(N, C, H, W) # 还原维度
+
+    out = gamma * xhat + beta
+    cache = (G, x, xhat, mean, var, std, gamma, beta, eps)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -815,10 +836,24 @@ def spatial_groupnorm_backward(dout, cache):
     dx, dgamma, dbeta = None, None, None
 
     ###########################################################################
-    # TODO: Implement the backward pass for spatial group normalization.      #
+    # Implement the backward pass for spatial group normalization.            #
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
-    # 
+    G, x, xhat, mean, var, std, gamma, beta, eps = cache
+    N, C, H, W = x.shape
+    
+    dbeta = np.sum(dout, axis=(0, 2, 3), keepdims=True)
+    dgamma = np.sum(dout * xhat, axis=(0, 2, 3), keepdims=True)
+
+    dhat = dout * gamma
+    dhat_group = dhat.reshape(N, G, -1)
+    x_group = x.reshape(N, G, -1)
+
+    D = x_group.shape[2]
+    dx_group = 1 / std * dhat_group \
+            - 1 / (D * std) * np.sum(dhat_group, axis=2, keepdims=True) \
+            - 1 / (D * std ** 3) * (x_group - mean) * np.sum(dhat_group * (x_group - mean), axis=2, keepdims=True)
+    dx = dx_group.reshape(N, C, H, W)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
