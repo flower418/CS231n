@@ -511,16 +511,37 @@ def conv_forward_naive(x, w, b, conv_param):
 
     Returns a tuple of:
     - out: Output data, of shape (N, F, H', W') where H' and W' are given by
-      H' = 1 + (H + 2 * pad - HH) / stride
+      H' = 1 + (H + 2 * pad - HH) / stride (H+2*pad-HH)/stride 下取整计算了一共能有几步，+1 表示卷积核可以落在哪几个位置
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
     """
     out = None
     ###########################################################################
-    # TODO: Implement the convolutional forward pass.                         #
+    # Implement the convolutional forward pass.                               #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    # 
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    stride = conv_param["stride"]
+    pad = conv_param["pad"]
+
+    H_out = 1 + (H + 2 * pad - HH) // stride # 这里是下取整
+    W_out = 1 + (W + 2 * pad - WW) // stride
+    out = np.zeros((N, F, H_out, W_out))
+
+    x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad))) # pd_width 是一个元组的元组，需要指定每一个维度前面补多少后面补多少
+
+    for i in range(N):
+        for j in range(F):
+            for k in range(H_out):
+                for l in range(W_out):
+                    H_start = k * stride # 注意这里需要乘 stride,每一步 stride 都会导致 k 翻倍
+                    H_end = H_start + HH
+                    W_start = l * stride
+                    W_end = W_start + WW
+
+                    region = x_padded[i, :, H_start:H_end, W_start:W_end] # 卷积是对所有通道做的
+                    out[i, j, k, l] = np.sum(region * w[j]) + b[j] # w[j]:C*HH*WW
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -542,9 +563,37 @@ def conv_backward_naive(dout, cache):
     """
     dx, dw, db = None, None, None
     ###########################################################################
-    # TODO: Implement the convolutional backward pass.                        #
+    # Implement the convolutional backward pass.                              #
     ###########################################################################
-    # 
+    x, w, b, conv_param = cache
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    stride = conv_param["stride"]
+    pad = conv_param["pad"]
+
+    H_out = 1 + (H + 2 * pad - HH) // stride
+    W_out = 1 + (W + 2 * pad - WW) // stride
+
+    x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
+    dx = np.zeros_like(x_padded)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    for i in range(N):
+        for j in range(F):
+            db[j] += np.sum(dout[i, j, :, :]) # 对于 b[j]，总共要加在 N 个图像 的第 j 个频道，的 H_out*W_out 的矩阵上
+            for k in range(H_out):
+                for l in range(W_out):
+                    h_start = k * stride
+                    h_end = h_start + HH
+                    w_start = l * stride
+                    w_end = w_start + WW
+
+                    region = x_padded[i, :, h_start:h_end, w_start:w_end]
+                    dw[j] += dout[i, j, k, l] * region
+                    dx[i, :, h_start:h_end, w_start:w_end] += dout[i, j, k, l] * w[j]
+
+    dx = dx[:, :, pad:pad+H, pad:pad+W]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -573,9 +622,28 @@ def max_pool_forward_naive(x, pool_param):
     """
     out = None
     ###########################################################################
-    # TODO: Implement the max-pooling forward pass                            #
+    # Implement the max-pooling forward pass                                  #
     ###########################################################################
-    # 
+    N, C, H, W = x.shape
+    pool_height = pool_param["pool_height"]
+    pool_width = pool_param["pool_width"]
+    stride = pool_param["stride"]
+
+    H_out = 1 + (H - pool_height) // stride
+    W_out = 1 + (W - pool_width) // stride
+    out = np.zeros((N, C, H_out, W_out))
+
+    for i in range(N):
+        for j in range(C):
+            for k in range(H_out):
+                for l in range(W_out):
+                    h_start = k * stride
+                    h_end = h_start + pool_height
+                    w_start = l * stride
+                    w_end = w_start + pool_width
+
+                    region = x[i, j, h_start:h_end, w_start:w_end]
+                    out[i, j, k, l] = np.max(region)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -595,9 +663,34 @@ def max_pool_backward_naive(dout, cache):
     """
     dx = None
     ###########################################################################
-    # TODO: Implement the max-pooling backward pass                           #
+    # Implement the max-pooling backward pass                                 #
     ###########################################################################
-    # 
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    H_out = dout.shape[2]
+    W_out = dout.shape[3]
+    stride = pool_param["stride"]
+    pool_height = pool_param["pool_height"]
+    pool_width = pool_param["pool_width"]
+    dx = np.zeros_like(x)
+
+    for i in range(N):
+        for j in range(C):
+            for k in range(H_out):
+                for l in range(W_out):
+                    h_start = k * stride
+                    h_end = h_start + pool_height
+                    w_start = l * stride
+                    w_end = w_start + pool_width
+
+                    region = x[i, j, h_start:h_end, w_start:w_end]
+                    flat_idx = np.argmax(region) # 获取将整个矩阵展平以后的最大值
+                    row_idx, col_idx = np.unravel_index(flat_idx, region.shape) # 这个函数返回将展平矩阵还原为对应类型时，它的横纵坐标
+
+                    # 还要将其转换为全局坐标
+                    h_global = h_start + row_idx
+                    w_global = w_start + col_idx
+                    dx[i, j, h_global, w_global] += dout[i, j, k, l]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
