@@ -41,9 +41,9 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     """
     next_h = None
     ##############################################################################
-    # TODO: Implement a single forward step for the vanilla RNN.                 #
+    # Implement a single forward step for the vanilla RNN.                       #
     ##############################################################################
-    # 
+    next_h = torch.tanh(x.mm(Wx) + prev_h.mm(Wh) + b)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -69,11 +69,23 @@ def rnn_forward(x, h0, Wx, Wh, b):
     """
     h = None
     ##############################################################################
-    # TODO: Implement forward pass for a vanilla RNN running on a sequence of    #
+    # Implement forward pass for a vanilla RNN running on a sequence of          #
     # input data. You should use the rnn_step_forward function that you defined  #
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
-    # 
+    N, T, D = x.shape
+    H = h0.shape[1]
+
+    h_list = []
+    first_h = rnn_step_forward(x[:, 0, :], h0, Wx, Wh, b) # 注意需要用 h 算第一次 hidden state,而不是直接把 h0 当成第一次状态
+    h_list.append(first_h) # 不能对 h 就地修改
+
+    for t in range(1, T):
+        prev_h = h_list[t - 1]
+        h_temp = rnn_step_forward(x[:, t, :], prev_h, Wx, Wh, b)
+        h_list.append(h_temp)
+
+    h = torch.stack(h_list, dim=1) # 相当于要在 dim=1 加一个轴，一共有 T 个矩阵，所以维度变成 N*T*H
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -97,11 +109,11 @@ def word_embedding_forward(x, W):
     """
     out = None
     ##############################################################################
-    # TODO: Implement the forward pass for word embeddings.                      #
+    # Implement the forward pass for word embeddings.                            #
     #                                                                            #
     # HINT: This can be done in one line using Pytorch's array indexing.         #
     ##############################################################################
-    # 
+    out = W[x]
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
